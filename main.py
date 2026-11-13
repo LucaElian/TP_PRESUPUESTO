@@ -1,4 +1,5 @@
 from math import isfinite
+import statistics
 
 CAPITAL = 850000
 CANTIDAD_ANIOS = 3
@@ -40,3 +41,10 @@ for banco in BANCOS:
     historicos[banco] = tasas
 
 print(historicos)
+
+for banco, tasas in historicos.items():
+    promedio = statistics.fmean(tasas)
+    print(f"Banco: {banco} \n Promedio de las tasas anuales: {promedio}")
+
+
+
