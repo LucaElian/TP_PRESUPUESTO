@@ -1,9 +1,12 @@
 from math import isfinite
-import statistics
+from statistics import fmean
+
+# CONFIGURACIONES
 
 CAPITAL = 850000
 CANTIDAD_ANIOS = 3
 INVERSION_ANIO = 1
+
 BANCOS = [
     "Banco Provincia", 
     "Banco Nacion", 
@@ -16,55 +19,103 @@ MODALIDADES = {
     "Mensual": 12
 }
 
-historicos = {}
 
-for banco in BANCOS:
-    tasas = []
+# PUNTO 1: CARGAR TASAS HISTORICAS
 
-    print (f"\n-- {banco} --")
+def cargar_historicos():
+    historicos = {}
 
-    for anio in range(1, CANTIDAD_ANIOS + 1):
-        while True:
-            try:
-                numero = float(input(f"Ingrese la tasa historica del año {anio} (%): "))
+    for banco in BANCOS:
+        tasas = []
 
-                if not isfinite(numero) or numero <= 0:
-                    print(f"Error: Ingrese un numero mayor a 0.")
-                    continue
+        print(f"\n-- {banco} --")
 
-                tasas.append(numero)
-                break
+        for anio in range(1, CANTIDAD_ANIOS + 1):
+            while True:
+                try:
+                    numero = float(input(f"Ingrese la tasa historica del año {anio} (%): "))
 
-            except ValueError:
-                print("Error: debe ingresar un numero valido.")
-    
-    historicos[banco] = tasas
+                    if not isfinite(numero) or numero <= 0:
+                        print("Error: Ingrese un numero mayor a 0")
 
-print(historicos)
+                    tasas.append(numero)
+                    break
 
-for banco, tasas in historicos.items():
-    promedio = statistics.fmean(tasas)
-    print(f"Banco: {banco} \n Promedio de las tasas anuales: {promedio}")
+                except ValueError:
+                    print("Error: Debe ingresar un numero valido")
 
-def pto3(ta_bcoProvincia, ta_bcoNacion, ta_bcoHipotecario):
-    tasas_bcos = [ta_bcoProvincia, ta_bcoNacion, ta_bcoHipotecario]
-    mejor_rendimiento = 0
-    mejor_banco = ""
-    mejor_modalidad = ""
-    for i in range(len(BANCOS)):
-        banco = BANCOS[i]
-        tasa = tasas_bcos[i]
-        for modalidad, cantidadMeses in MODALIDADES.items():
-            rendimiento = calcular_rendimiento( tasa, cantidadMeses)
-            monto = CAPITAL + rendimiento
-            #CALCULAR MAXIMO RENDIMIENTO
-    #print("mejor rendimeinto es: 
+        historicos[banco] = tasas
 
-def calcular_rendimiento( tasa, cantidadMeses):
+    return historicos
+
+
+# PUNTO 2: CALCULAR PROMEDIOS
+
+def calcular_promedios(historicos):
+    promedios = {}
+
+    print("\n--- PROMEDIO DE TASAS ANUALES ---")
+
+    for banco, tasas in historicos.item():
+        promedio = fmean(tasas)
+        promedios[banco] = promedio
+
+        print(f"{banco}: {promedio:.2f}%")
+
+    return promedios
+
+
+# CALCULAR RENDIMIENTO
+
+def calcular_rendimiento(tasa, cantidad_periodos):
     monto_actual = CAPITAL
-    tasa_etapa = tasa_anual / cantidadMeses
-    for x in range (cantidadMeses):
+    tasa_etapa = (tasa / 100) / cantidad_periodos
+
+    for x in range(cantidad_periodos):
         ganancia_etapa = monto_actual * tasa_etapa
         monto_actual += ganancia_etapa
+
     return monto_actual - CAPITAL
-    
+
+
+# PUNTO 3: EVALUAR INVERSIONES
+
+def evaluar_inversiones(promedios):
+    mejor_rendimiento = -1
+    mejor_banco = ""
+    mejor_modalidad = ""
+
+    print("\n--- MODALIDADES DE INVERSION ---")
+
+    for banco, tasa in promedios.items():
+        print(f"\n-- {banco} --")
+
+        for modalidad, cantidad_periodos in MODALIDADES.items():
+            rendimiento = calcular_rendimiento(tasa, cantidad_periodos)
+            monto = CAPITAL + rendimiento
+
+            print(f"{modalidad}:")
+            print(f"  Rendimiento: ${rendimiento:.2f}")
+            print(f"  Capital final: ${monto:.2f}")
+
+            if rendimiento > mejor_rendimiento:
+                mejor_rendimiento = rendimiento
+                mejor_banco = banco
+                mejor_modalidad = modalidad
+
+    print("\n--- MEJOR OPCION DE INVERSION ---")
+    print(f"Banco recomendado: {mejor_banco}")
+    print(f"Modalidad recomendada: {mejor_modalidad}")
+    print(f"Ganancia: ${mejor_rendimiento:.2f}")
+    print(f"Capital final: ${CAPITAL + mejor_rendimiento:.2f}")
+
+
+# PROGRAMA PRINCIPAL
+
+def main():
+    historicos = cargar_historicos()
+    promedios = calcular_promedios(historicos)
+    evaluar_inversiones(promedios)
+
+if __name__ == "__main__":
+    main()
