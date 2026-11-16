@@ -22,7 +22,7 @@ MODALIDADES = {
 def calcular_promedios(historicos):
     promedios = {}
 
-    for banco, tasas in historicos.item():
+    for banco, tasas in historicos.items():
         promedio = fmean(tasas)
         promedios[banco] = promedio
 
@@ -77,4 +77,3 @@ def evaluar_inversiones(promedios, capital):
     }
 
     return resultados, recomendacion
-    main()
