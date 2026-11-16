@@ -1,11 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Segundo parcial</title>
 </head>
+
 <body>
-    
+    <header>
+        <h1>Segundo parcial - Análisis de datos</h1>
+        <nav>
+            <ul>
+                <li><a href="#cargar">Cargar datos</a></li>
+                <li><a href="#historicos">Promedios históricos</a></li>
+                <li><a href="#evaluar">Evaluar inversiones</a></li>
+                <li><a href="#integrantes">Integrantes</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+
+        <section id="cargar">
+            <h2>Carga de tasas históricas</h2>
+            <p>Capital a invertir: ${{ "{:,.2f}".format(capital) }}</p>
+            <p>Ingrese las tasas porcentuales anuales de los últimos {{cantidad_anios}} años</p>
+
+            <form method="POST" action="/">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Entidad Bancaria</th>
+                            {% for anio in range(1, cantidad_anios + 1) %}
+                            <th>Año {{ anio }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for banco in bancos %}
+                        <tr>
+                            <td><strong>{{ banco }}</strong></td>
+                            {% for anio in range(1, cantidad_anios + 1) %}
+                            <td>
+                                <input type="number" name="{{ banco }}_{{ anio }}" step="0.01" min="0.1"
+                                    placeholder="39%" required>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <br>
+                <button type="submit">Guardar datos</button>
+            </form>
+        </section>
+
+        <section id="historicos" class="seccion-tab">
+            <h2>Promedios históricos de las tasas</h2>
+            {% if promedios %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Banco</th>
+                        <th>Tasa Promedio Anual</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for banco, promedio in promedios.items() %}
+                    <tr>
+                        <td>{{ banco }}</td>
+                        <td>{{ "%.2f"|format(promedio) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No hay datos cargados. Primero deberás <a href="#cargar">ingresar los datos</a></p>
+            {% endif %}
+        </section>
+
+        <section id="evaluar" class="seccion-tab">
+            <h2>Evaluación de inversiones</h2>
+            {% if resultados and recomendacion %}
+            <article class="recomendacion-box">
+                <h3>Opción Recomendada</h3>
+                <p>Para invertir su capital se recomienda el {{ recomendacion.banco }} con
+                    la modalidad {{ recomendacion.modalidad }}.</p>
+                <ul>
+                    <li><strong>Ganancia estimada:</strong> ${{ "{:,.2f}".format(recomendacion.ganancia) }}</li>
+                    <li><strong>Monto final estimado:</strong> ${{ "{:,.2f}".format(recomendacion.monto_final) }}</li>
+                </ul>
+            </article>
+            
+            <button>Más información</button>
+
+            <h3>Comparativa de bancos y modalidad</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Banco</th>
+                        <th>Modalidad</th>
+                        <th>Ganancia estimada</th>
+                        <th>Monto final estimado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for banco, modalidades in resultados.items() %}
+                    {% for mod, valores in modalidades.items() %}
+                    <tr>
+                        <td>{{ banco }}</td>
+                        <td>{{ mod }}</td>
+                        <td>${{ "{:,.2f}".format(valores.ganancia) }}</td>
+                        <td>${{ "{:,.2f}".format(valores.monto_final) }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No hay datos cargados. Primero deberás <a href="#cargar">ingresar los datos</a></p>
+            {% endif %}
+        </section>
+
+        <section id="integrantes">
+            <h2>Integrantes del grupo</h2>
+            <ul>
+                <li>Abulafia, Luca Elian</li>
+                <li>Milotich, Alejandro</li>
+                <li>Rosas, Jonatan Isaias</li>
+            </ul>
+        </section>
+
+    </main>
 </body>
+
 </html>
