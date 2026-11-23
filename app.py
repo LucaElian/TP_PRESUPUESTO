@@ -9,6 +9,7 @@ from calculos import (
     CAPITAL,
     BANCOS,
     CANTIDAD_ANIOS,
+    MODALIDADES,
     calcular_promedios,
     evaluar_inversiones
 )
@@ -21,10 +22,11 @@ def inicio():
     resultados = None
     recomendacion = None
     error = None
+    historicos = {}
+    campo = None
+    campo_error = None
 
     if request.method == "POST":
-        historicos = {}
-
         try:
             # PUNTO 1: RECIBIR LAS TASAS HISTORICAS
             for banco in BANCOS:
@@ -50,7 +52,8 @@ def inicio():
             resultados, recomendacion = evaluar_inversiones(promedios, CAPITAL)
 
         except(ValueError, KeyError):
-            error = "Error: Ingrese tasas numericas validas"
+            error = "Ingresá tasas numéricas válidas, iguales o mayores que cero."
+            campo_error = campo
 
     return render_template(
         "index.html",
@@ -60,7 +63,11 @@ def inicio():
         promedios=promedios,
         resultados=resultados,
         recomendacion=recomendacion,
-        error=error
+        error=error,
+        campo_error=campo_error,
+        historicos=historicos,
+        modalidades=MODALIDADES,
+        form_values=request.form
     )
 
 if __name__ == "__main__":

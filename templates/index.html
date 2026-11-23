@@ -1,138 +1,358 @@
+{% macro icon(name, extra='') -%}
+    <svg class="icon {{ extra }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        {% if name == 'bank' %}
+            <path d="m3 8 9-5 9 5M4 9h16M5 19h14M3 22h18M7 12v5m5-5v5m5-5v5"/>
+        {% elif name == 'arrow' %}
+            <path d="M4 12h16m-6-6 6 6-6 6"/>
+        {% elif name == 'check' %}
+            <path d="m5 12 4 4L19 6"/>
+        {% elif name == 'award' %}
+            <circle cx="12" cy="8" r="5"/>
+            <path d="m8 12-2 9 6-3 6 3-2-9"/>
+        {% elif name == 'chart' %}
+            <path d="M4 3v17h17M8 15l4-5 4 2 5-7"/>
+        {% elif name == 'layers' %}
+            <path d="m3 7 9-4 9 4-9 4-9-4Zm0 5 9 4 9-4M3 17l9 4 9-4"/>
+        {% elif name == 'alert' %}
+            <path d="m12 3 10 18H2L12 3Zm0 6v5m0 3v.1"/>
+        {% else %}
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 8v5m0 3v.1"/>
+        {% endif %}
+    </svg>
+{%- endmacro %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es-AR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#14488a">
+        <meta name="description" content="Compará las tasas históricas de tres bancos y encontrá la inversión con mayor rendimiento estimado.">
+        <title>Simulador de Inversiones · Análisis de Datos</title>
+        <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+        <link rel="preload" href="{{ url_for('static', filename='fonts/geist-latin-400-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+        <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+    </head>
+    <body data-has-results="{{ 'true' if resultados else 'false' }}" data-has-error="{{ 'true' if error else 'false' }}">
+        <a class="skip-link" href="#contenido">Ir al contenido</a>
+        <header class="site-header">
+            <div class="header-inner">
+                <a href="{{ url_for('inicio') }}" class="brand" aria-label="Simulador de inversiones, inicio">
+                    <span class="brand-icon">{{ icon('bank') }}</span>
+                    <span>Simulador<span class="brand-subtitle">UTN Pacheco · Análisis de Datos</span>
+                    </span>
+                </a>
+                <nav aria-label="Navegación principal">
+                    <a href="#cargar" aria-current="location">Cargar datos</a>
+                    <a href="#historicos">Promedios</a>
+                    <a href="#evaluar">Inversiones</a>
+                    <a href="#integrantes">Integrantes</a>
+                </nav>
+            </div>
+        </header>
+        <main class="page" id="contenido">
+            <section class="hero" aria-labelledby="titulo">
+                <div class="hero-copy">
+                    <span class="eyebrow">
+                        <span class="tiny-square"></span> Segundo parcial · Análisis de Datos</span>
+                    <h1 id="titulo">Simulador de<br>
+                        <span>Inversiones</span>
+                    </h1>
+                    <div class="title-rule"></div>
+                    <p>Tres bancos. Tres modalidades. Una decisión.<br>Compará rendimientos a partir de las tasas históricas.</p>
+                </div>
+                <dl class="hero-facts">
+                    <div>
+                        <dt>Capital inicial</dt>
+                        <dd>${{ '{:,.2f}'.format(capital) }}</dd>
+                    </div>
+                    <div>
+                        <dt>Datos históricos</dt>
+                        <dd>3 bancos <span>×</span> {{ cantidad_anios }} años</dd>
+                    </div>
+                    <div>
+                        <dt>Horizonte de inversión</dt>
+                        <dd>1 año <span>·</span> 3 modalidades</dd>
+                    </div>
+                </dl>
+            </section>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Segundo parcial</title>
-</head>
+            <section id="cargar" class="input-layout" aria-labelledby="carga-titulo">
+                <div class="window-card">
+                    <div class="window-bar">
+                        <span class="window-dots" aria-hidden="true">
+                            <i></i>
+                            <i></i>
+                            <i></i>
+                        </span>
+                        <span>SIMULADOR DE INVERSIONES</span>
+                        <span class="window-step">01 / DATOS</span>
+                    </div>
+                    <div class="window-content">
+                        <div class="card-heading">
+                            <div>
+                                <h2 id="carga-titulo">Carga de tasas históricas</h2>
+                                <p>Ingresá las tasas porcentuales anuales de los últimos {{ cantidad_anios }} años.</p>
+                            </div>
+                            <div class="capital-badge">
+                                <span>Capital a invertir</span>
+                                <strong>${{ '{:,.2f}'.format(capital) }}</strong>
+                            </div>
+                        </div>
+                        {% if error %}
+                            <div class="error-notice" role="alert">{{ icon('alert') }}<div>
+                                    <strong>Revisá los datos ingresados</strong>
+                                    <p>{{ error }}</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('inicio') }}" id="tasas-form">
+                            <div class="input-table-wrap">
+                                <table class="input-table">
+                                    <caption class="sr-only">Tasas históricas por entidad bancaria y año, en porcentaje</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Entidad bancaria</th>
+                                            {% for anio in range(1, cantidad_anios + 1) %}
+                                                <th scope="col">Año {{ anio }} (%)</th>
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for banco in bancos %}
+                                            {% set bank_index = loop.index %}
+                                            <tr>
+                                                <th scope="row">
+                                                    <span class="bank-name">{{ icon('bank') }}{{ banco }}</span>
+                                                </th>
+                                                {% for anio in range(1, cantidad_anios + 1) %}
+                                                    {% set campo = banco ~ '_' ~ anio %}
+                                                    <td>
+                                                        <label class="rate-field" for="tasa-{{ bank_index }}-{{ anio }}">
+                                                            <span class="mobile-year" aria-hidden="true">Año {{ anio }}</span>
+                                                            <span class="sr-only">{{ banco }}, año {{ anio }}, porcentaje</span>
+                                                            <span class="input-shell">
+                                                                <input id="tasa-{{ bank_index }}-{{ anio }}" type="number" name="{{ campo }}" step="0.01" min="0" placeholder="39.00" required inputmode="decimal" value="{{ form_values.get(campo, '') }}" data-initial-value="{{ form_values.get(campo, '') }}" data-bank="{{ banco }}" data-year="{{ anio }}" {% if campo == campo_error %}aria-invalid="true"{% endif %}>
+                                                                <span class="percent-suffix" aria-hidden="true">%</span>
+                                                            </span>
+                                                        </label>
+                                                    </td>
+                                                {% endfor %}
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="form-actions">
+                                <button class="button-primary" type="submit" id="calculate-button">
+                                    <span>Calcular inversiones</span>{{ icon('arrow') }}</button>
+                                <button class="button-text" type="button" id="example-button" hidden>Cargar ejemplo</button>
+                                <button class="button-text clear-button" type="button" id="clear-button" hidden>Limpiar</button>
+                            </div>
+                            <p class="example-notice" id="example-notice" role="status" hidden>Datos de ejemplo cargados. Podés modificarlos antes de calcular.</p>
+                        </form>
+                    </div>
+                    <div class="window-footer">
+                        <span>Tasas anuales · Valores en %</span>
+                        <span id="completion-status" role="status" aria-live="polite">0 de 9 tasas cargadas</span>
+                    </div>
+                </div>
+                <aside class="method-card" aria-labelledby="metodo-titulo">
+                    <span class="eyebrow">{{ icon('layers') }} Del dato a la decisión</span>
+                    <h2 id="metodo-titulo">Cómo se calcula</h2>
+                    <ol class="method-steps">
+                        <li>
+                            <span class="step-number">01</span>
+                            <div>
+                                <h3>Promedio por banco</h3>
+                                <p>La media de las tres tasas históricas define la tasa anual de cada entidad.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="step-number">02</span>
+                            <div>
+                                <h3>Interés compuesto</h3>
+                                <p>El capital se reinvierte de forma anual, trimestral o mensual durante un año.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="step-number">03</span>
+                            <div>
+                                <h3>La mejor alternativa</h3>
+                                <p>Comparamos los nueve escenarios y destacamos la mayor ganancia estimada.</p>
+                            </div>
+                        </li>
+                    </ol>
+                    <div class="method-note">{{ icon('chart') }}<p>El monto final incluye el capital inicial más la ganancia obtenida.</p>
+                    </div>
+                </aside>
+            </section>
 
-<body>
-    <header>
-        <h1>Segundo parcial - Análisis de datos</h1>
-        <nav>
-            <ul>
-                <li><a href="#cargar">Cargar datos</a></li>
-                <li><a href="#historicos">Promedios históricos</a></li>
-                <li><a href="#evaluar">Evaluar inversiones</a></li>
-                <li><a href="#integrantes">Integrantes</a></li>
-            </ul>
-        </nav>
-    </header>
-
-    <main>
-
-        <section id="cargar">
-            <h2>Carga de tasas históricas</h2>
-            <p>Capital a invertir: ${{ "{:,.2f}".format(capital) }}</p>
-            <p>Ingrese las tasas porcentuales anuales de los últimos {{cantidad_anios}} años</p>
-
-            <form method="POST" action="/">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Entidad Bancaria</th>
-                            {% for anio in range(1, cantidad_anios + 1) %}
-                            <th>Año {{ anio }}</th>
+            <div id="resultados">
+                <p class="stale-notice" id="stale-notice" role="status" hidden>{{ icon('alert') }} Modificaste las tasas. Volvé a calcular para actualizar los resultados.</p>
+                <section id="historicos" class="section" aria-labelledby="historicos-titulo">
+                    <div class="section-heading">
+                        <div>
+                            <span class="eyebrow">02 · Tasas de referencia</span>
+                            <h2 id="historicos-titulo" tabindex="-1">Promedios históricos</h2>
+                            <p>Una tasa anual por banco, calculada con los tres años ingresados.</p>
+                        </div>
+                        <span class="section-tag">Media aritmética</span>
+                    </div>
+                    {% if promedios %}
+                        {% set max_promedio = promedios.values()|max %}
+                        <div class="average-grid">
+                            {% for banco, promedio in promedios.items() %}
+                                <article class="average-card {{ 'best-average' if promedio == max_promedio else '' }}">
+                                    <div class="average-top">
+                                        <span class="bank-symbol">{{ icon('bank') }}</span>
+                                        {% if promedio == max_promedio %}
+                                            <span class="badge badge-blue">Mayor tasa</span>
+                                        {% else %}
+                                            <span class="small-label">Tasa anual</span>
+                                        {% endif %}
+                                    </div>
+                                    <h3>{{ banco }}</h3>
+                                    <p class="average-value">{{ '%.2f'|format(promedio) }}<span>%</span>
+                                    </p>
+                                    <div class="rate-bar" aria-hidden="true">
+                                        <span style="width: {{ (promedio / max_promedio * 100) if max_promedio > 0 else 0 }}%">
+                                        </span>
+                                    </div>
+                                    <p class="history-values">
+                                        {% for tasa in historicos[banco] %}
+                                            <span>{{ '%.2f'|format(tasa) }}%</span>
+                                            {% if not loop.last %}
+                                                <i> / </i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </p>
+                                </article>
                             {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for banco in bancos %}
-                        <tr>
-                            <td><strong>{{ banco }}</strong></td>
-                            {% for anio in range(1, cantidad_anios + 1) %}
-                            <td>
-                                <input type="number" name="{{ banco }}_{{ anio }}" step="0.01" min="0.1"
-                                    placeholder="39%" required>
-                            </td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <br>
-                <button type="submit">Guardar datos</button>
-            </form>
-        </section>
+                        </div>
+                    {% else %}
+                        <div class="empty-state">{{ icon('chart', 'empty-icon') }}<div>
+                                <h3>Todo empieza con tus tasas</h3>
+                                <p>Completá los nueve valores y calculá para ver el promedio de cada banco.</p>
+                            </div>
+                            <a href="#cargar" class="inline-link">Cargar datos {{ icon('arrow') }}</a>
+                        </div>
+                    {% endif %}
+                </section>
 
-        <section id="historicos" class="seccion-tab">
-            <h2>Promedios históricos de las tasas</h2>
-            {% if promedios %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Banco</th>
-                        <th>Tasa Promedio Anual</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for banco, promedio in promedios.items() %}
-                    <tr>
-                        <td>{{ banco }}</td>
-                        <td>{{ "%.2f"|format(promedio) }}%</td>
-                    </tr>
+                <section id="evaluar" class="section" aria-labelledby="evaluar-titulo">
+                    <div class="section-heading">
+                        <div>
+                            <span class="eyebrow">03 · Comparación de escenarios</span>
+                            <h2 id="evaluar-titulo">Evaluación de inversiones</h2>
+                            <p>El mismo capital inicial, distintas formas de hacerlo crecer.</p>
+                        </div>
+                        <span class="section-tag">3 bancos × 3 modalidades</span>
+                    </div>
+                    {% if resultados and recomendacion %}
+                        <article class="recommendation" aria-label="Opción recomendada">
+                            <div class="winner-description">
+                                <span class="award-icon">{{ icon('award') }}</span>
+                                <div>
+                                    <span class="winner-label">Opción recomendada</span>
+                                    <h3>{{ recomendacion.banco }}</h3>
+                                    <p>Capitalización {{ recomendacion.modalidad|lower }} · 1 año</p>
+                                </div>
+                            </div>
+                            <div class="winner-amount">
+                                <span>Ganancia estimada</span>
+                                <strong class="gain">${{ '{:,.2f}'.format(recomendacion.ganancia) }}</strong>
+                            </div>
+                            <div class="winner-amount final-amount">
+                                <span>Monto final estimado</span>
+                                <strong>${{ '{:,.2f}'.format(recomendacion.monto_final) }}</strong>
+                            </div>
+                        </article>
+                        <div class="comparison-card">
+                            <div class="comparison-heading">
+                                <h3>Comparativa de bancos y modalidades</h3>
+                                <span class="small-label">9 escenarios · Valores en $</span>
+                            </div>
+                            <p class="scroll-hint">Deslizá la tabla para ver todas las columnas →</p>
+                            <div class="comparison-scroll" role="region" aria-label="Comparativa de nueve escenarios de inversión" tabindex="0">
+                                <table class="comparison-table">
+                                    <caption class="sr-only">Ganancias y montos finales para cada banco y modalidad de capitalización</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Entidad bancaria</th>
+                                            <th scope="col">Modalidad</th>
+                                            <th scope="col" class="numeric">Tasa anual</th>
+                                            <th scope="col" class="numeric">Ganancia estimada</th>
+                                            <th scope="col" class="numeric">Monto final</th>
+                                            <th scope="col">Resultado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for banco, opciones in resultados.items() %}
+                                            {% for mod, valores in opciones.items() %}
+                                                {% set winner = banco == recomendacion.banco and mod == recomendacion.modalidad %}
+                                                <tr class="{{ 'winner-row' if winner else '' }}">
+                                                    <th scope="row">
+                                                        <span class="bank-name">{{ icon('bank') }}{{ banco }}</span>
+                                                    </th>
+                                                    <td>
+                                                        <span class="modality-name">{{ mod }}</span>
+                                                        <span class="period-count">{{ modalidades[mod] }} {{ 'período' if modalidades[mod] == 1 else 'períodos' }}/año</span>
+                                                    </td>
+                                                    <td class="numeric">{{ '%.2f'|format(promedios[banco]) }}%</td>
+                                                    <td class="numeric gain">${{ '{:,.2f}'.format(valores.ganancia) }}</td>
+                                                    <td class="numeric total">${{ '{:,.2f}'.format(valores.monto_final) }}</td>
+                                                    <td>
+                                                        {% if winner %}
+                                                            <span class="badge badge-green">{{ icon('check') }}Mayor ganancia</span>
+                                                        {% else %}
+                                                            <span class="alternative">Alternativa</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="comparison-footer">{{ icon('info') }} Proyección calculada con tasas históricas. Los resultados son estimados.</div>
+                        </div>
+                    {% else %}
+                        <div class="empty-state">{{ icon('layers', 'empty-icon') }}<div>
+                                <h3>Nueve alternativas, una comparación</h3>
+                                <p>Al calcular vas a ver las ganancias, los montos finales y la opción de mayor rendimiento.</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </section>
+            </div>
+            <section id="integrantes" class="section team-section" aria-labelledby="integrantes-titulo">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">El equipo</span>
+                        <h2 id="integrantes-titulo">Integrantes del grupo</h2>
+                    </div>
+                    <span class="section-tag">UTN · Facultad Regional General Pacheco</span>
+                </div>
+                <div class="team-grid">
+                    {% for iniciales, nombre in [('LA', 'Abulafia, Luca Elian'), ('AM', 'Milotich, Alejandro'), ('JR', 'Rosas, Jonatan Isaias')] %}
+                        <article class="team-card">
+                            <span class="avatar">{{ iniciales }}</span>
+                            <div>
+                                <h3>{{ nombre }}</h3>
+                                <p>Análisis de Datos</p>
+                            </div>
+                        </article>
                     {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p>No hay datos cargados. Primero deberás <a href="#cargar">ingresar los datos</a></p>
-            {% endif %}
-        </section>
-
-        <section id="evaluar" class="seccion-tab">
-            <h2>Evaluación de inversiones</h2>
-            {% if resultados and recomendacion %}
-            <article class="recomendacion-box">
-                <h3>Opción Recomendada</h3>
-                <p>Para invertir su capital se recomienda el {{ recomendacion.banco }} con
-                    la modalidad {{ recomendacion.modalidad }}.</p>
-                <ul>
-                    <li><strong>Ganancia estimada:</strong> ${{ "{:,.2f}".format(recomendacion.ganancia) }}</li>
-                    <li><strong>Monto final estimado:</strong> ${{ "{:,.2f}".format(recomendacion.monto_final) }}</li>
-                </ul>
-            </article>
-            
-            <button>Más información</button>
-
-            <h3>Comparativa de bancos y modalidad</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Banco</th>
-                        <th>Modalidad</th>
-                        <th>Ganancia estimada</th>
-                        <th>Monto final estimado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for banco, modalidades in resultados.items() %}
-                    {% for mod, valores in modalidades.items() %}
-                    <tr>
-                        <td>{{ banco }}</td>
-                        <td>{{ mod }}</td>
-                        <td>${{ "{:,.2f}".format(valores.ganancia) }}</td>
-                        <td>${{ "{:,.2f}".format(valores.monto_final) }}</td>
-                    </tr>
-                    {% endfor %}
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p>No hay datos cargados. Primero deberás <a href="#cargar">ingresar los datos</a></p>
-            {% endif %}
-        </section>
-
-        <section id="integrantes">
-            <h2>Integrantes del grupo</h2>
-            <ul>
-                <li>Abulafia, Luca Elian</li>
-                <li>Milotich, Alejandro</li>
-                <li>Rosas, Jonatan Isaias</li>
-            </ul>
-        </section>
-
-    </main>
-</body>
-
+                </div>
+            </section>
+        </main>
+        <footer class="site-footer">
+            <div class="page footer-inner">
+                <span>{{ icon('bank') }} Simulador de Inversiones</span>
+                <span>Segundo parcial · Análisis de Datos · UTN Pacheco</span>
+            </div>
+        </footer>
+    </body>
 </html>
